@@ -1,0 +1,40 @@
+[
+  {
+    "name": "Google Login",
+    "main": ["Google Account"],
+    "keywords": [
+      "Google Login",
+      "Login",
+      "Sign in",
+      "Forgot email",
+      "google account",
+      "email",
+      "phone",
+      "password",
+      "create account"
+    ],
+    "buttons": ["next", "create account", "forgot email"],
+    "form-inputs": ["email", "phone", "password"],
+    "favicon": "./assets/google/fav.png",
+    "Logo": "./assets/google/img.png"
+  },
+  {
+    "name": "Facebook Login",
+    "main": ["Facebook", "Log in to Facebook"],
+    "keywords": [
+      "Facebook",
+      "Login",
+      "Forget password",
+      "Forgotten account",
+      "Sign up for Facebook",
+      "text",
+      "email",
+      "phone",
+      "username"
+    ],
+    "buttons": ["Log in", "Sign in"],
+    "form-inputs": ["text", "email", "phone", "username"],
+    "favicon": "./assets/facebook/fav.png",
+    "Logo": "./assets/facebook/img.jpg"
+  }
+]
