@@ -8,7 +8,31 @@ async function fetchImageAsBuffer(url) {
     return null;
   }
 }
+async function injectWarningPage() {
+  const iframe = document.createElement("iframe");
+  iframe.src = chrome.runtime.getURL("warning/warning.html");
+  iframe.style.position = "fixed";
+  iframe.style.top = "0";
+  iframe.style.left = "0";
+  iframe.style.width = "100vw";
+  iframe.style.height = "100vh";
+  iframe.style.border = "none";
+  iframe.style.zIndex = "999999";
 
+  document.body.appendChild(iframe);
+
+  // Listen for message from iframe to remove it
+  window.addEventListener("message", (event) => {
+    if (event.data === "close-warning") {
+      iframe.remove();
+    }
+  });
+  window.addEventListener("message", (event) => {
+    if (event.data === "redirect") {
+      window.location.href = "https://www.google.com";
+    }
+  });
+}
 async function processImage(blob) {
   const img = await createImageBitmap(blob);
   const canvas = document.createElement("canvas");
@@ -51,6 +75,56 @@ async function compareImagesSSIM(imgUrl1, imgUrl2) {
   );
 
   return mssim;
+}
+async function showWarningAlert(
+  message = "⚠️ Warning: This website might be unsafe!",
+  words
+) {
+  const alertDiv = document.createElement("div");
+  alertDiv.id = "custom-warning-alert";
+  alertDiv.innerHTML = `
+      <div class="alert-box">
+          <h4>
+          ${message}
+          </h4>
+          <p>It got flagged due to: ${words} usage in the page</p>
+          <p>Please Proceed With Caution!!</p>
+      </div>
+      <style>
+          .alert-box {
+              position: fixed;
+              top: 10px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: #e02828;
+              color: white;
+              padding: 15px 25px;
+              font-size: 16px;
+              font-weight: bold;
+              border-radius: 5px;
+              z-index: 9999;
+              box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+              opacity: 0;
+              animation: fadeIn .5s forwards, fadeOut .5s 7s forwards;
+          }
+
+          @keyframes fadeIn {
+              from { opacity: 0; transform: translate(-50%, -20px); }
+              to { opacity: 1; transform: translate(-50%, 0); }
+          }
+
+          @keyframes fadeOut {
+              from { opacity: 1; transform: translate(-50%, 0); }
+              to { opacity: 0; transform: translate(-50%, -20px); }
+          }
+      </style>
+  `;
+
+  document.body.appendChild(alertDiv);
+
+  // Wait for the total animation time (4s) before removing it
+  await new Promise((resolve) => setTimeout(resolve, 8000));
+  alertDiv.remove();
 }
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
@@ -134,7 +208,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       }
     }
 
-    if (maxMatches >= 3) {
+    if (maxMatches >= 0) {
       // Start Image Detections
       if (pageContent.favicon && detectedSite.favicon) {
         const similarity = await compareImagesSSIM(
@@ -166,6 +240,14 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         console.error(`error: ${err}`);
       }
 
+      if (maxMatches > 60) {
+        await injectWarningPage();
+      } else {
+        showWarningAlert(
+          "⚠️ Warning: This website might be unsafe!",
+          matchedKeywords.join(", ")
+        );
+      }
       console.log(
         `Potential phishing detected for: ${detectedSite.name} (Matches: ${maxMatches})`
       );
