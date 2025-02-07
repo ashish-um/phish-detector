@@ -3,11 +3,9 @@
     "name": "Google Login",
     "main": ["Google Account"],
     "keywords": [
-      "Google Login",
       "Login",
       "Sign in",
       "Forgot email",
-      "google account",
       "email",
       "phone",
       "password",
@@ -33,6 +31,26 @@
       "username"
     ],
     "buttons": ["Log in", "Sign in"],
+    "form-inputs": ["text", "email", "phone", "username"],
+    "favicon": "./assets/facebook/fav.png",
+    "Logo": "./assets/facebook/img.jpg"
+  },
+  {
+    "name": "Amazon Login",
+    "main": ["Facebook", "Log in to Facebook"],
+    "keywords": [
+      "Facebook",
+      "Login",
+      "Forget password",
+      "Forgotten account",
+      "Sign up for Facebook",
+      "text",
+      "email",
+      "phone",
+      "mobile phone",
+      "username"
+    ],
+    "buttons": ["Continue", "Sign in"],
     "form-inputs": ["text", "email", "phone", "username"],
     "favicon": "./assets/facebook/fav.png",
     "Logo": "./assets/facebook/img.jpg"

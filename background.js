@@ -10,7 +10,7 @@ chrome.webNavigation.onCompleted.addListener(
         chrome.tabs.sendMessage(details.tabId, {
           action: "extractPageContent",
         });
-      }, 2000);
+      }, 1000);
     }
   },
   { url: [{ schemes: ["http", "https"] }] }

@@ -53,7 +53,42 @@ async function processImage(blob) {
 
   return new Uint8Array(imageData.data.filter((_, idx) => idx % 4 === 0)); // Extract grayscale channel
 }
+async function fetchGemini(contents, domain) {
+  const GOOGLE_API_KEY = ""; // Replace with your actual API key
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`;
 
+  const requestData = {
+    contents: [
+      {
+        parts: [
+          {
+            text: `you have to detect if a website is phishing website. Here are the website contents: ${contents} and the url of website is: ${domain}
+            return the output in strictly this json format where detection will output true if you think its a phishing website otherwise false, and also mention the name of the detectedSite: {"detection":true/false, "detectedSite": ""}`,
+          },
+        ],
+      },
+    ],
+    generationConfig: { response_mime_type: "application/json" },
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestData),
+    });
+
+    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+    const data = await response.json();
+    console.log("API Response:", data);
+    return data;
+  } catch (error) {
+    console.error("Error fetching Gemini recipes:", error);
+  }
+}
 async function compareImagesSSIM(imgUrl1, imgUrl2) {
   const [blob1, blob2] = await Promise.all([
     fetchImageAsBuffer(imgUrl1),
@@ -210,19 +245,19 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
     if (maxMatches >= 0) {
       // Start Image Detections
-      if (pageContent.favicon && detectedSite.favicon) {
-        const similarity = await compareImagesSSIM(
-          pageContent.favicon,
-          chrome.runtime.getURL(detectedSite.favicon)
-        );
-        if (similarity > 0.8) {
-          maxMatches += 20;
-          console.log(`favicon matched: ${similarity} ${detectedSite.name}`);
-          matchedKeywords.push("favicon match");
-        }
-      }
-
       try {
+        if (pageContent.favicon && detectedSite.favicon) {
+          const similarity = await compareImagesSSIM(
+            pageContent.favicon,
+            chrome.runtime.getURL(detectedSite.favicon)
+          );
+          if (similarity > 0.8) {
+            maxMatches += 30;
+            console.log(`favicon matched: ${similarity} ${detectedSite.name}`);
+            matchedKeywords.push("favicon match");
+          }
+        }
+
         for (const img of pageContent.images) {
           if (detectedSite.Logo) {
             const similarity = await compareImagesSSIM(
@@ -230,7 +265,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
               chrome.runtime.getURL(detectedSite.Logo)
             );
             if (similarity > 0.8) {
-              maxMatches += 20;
+              maxMatches += 30;
               console.log(`logo matched: ${similarity} ${detectedSite.name}`);
               matchedKeywords.push("logo match");
             }
@@ -240,14 +275,30 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         console.error(`error: ${err}`);
       }
 
-      if (maxMatches > 60) {
+      var res = { detection: false, detectedSite: "" };
+      try {
+        const gemDetect = await fetchGemini(
+          document.documentElement.innerHTML,
+          window.location.href
+        );
+        console.log(gemDetect);
+        res = JSON.parse(
+          gemDetect["candidates"][0]["content"]["parts"][0]["text"]
+        );
+      } catch (err) {
+        console.error(err);
+      }
+      console.log(`gem detect: ${res["detection"]} ${res["detectedSite"]}`);
+
+      if (maxMatches > 30 || res["detection"]) {
         await injectWarningPage();
       } else {
-        showWarningAlert(
-          "⚠️ Warning: This website might be unsafe!",
-          matchedKeywords.join(", ")
-        );
+        // showWarningAlert(
+        //   "⚠️ Warning: This website might be unsafe!",
+        //   matchedKeywords.join(", ")
+        // );
       }
+
       console.log(
         `Potential phishing detected for: ${detectedSite.name} (Matches: ${maxMatches})`
       );
