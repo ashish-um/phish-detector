@@ -19,14 +19,15 @@ button {
   padding: 10px 20px;
   border: none;
   cursor: pointer;
+  font-weight: bold;
 }
 
 #go-back {
-  background-color: blue;
+  background-color: rgb(69, 192, 87);
   color: white;
 }
 
 #proceed {
-  background-color: red;
+  background-color: rgb(105, 105, 105);
   color: white;
 }

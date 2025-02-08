@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logo Similarity Checker</title>
+    <script src="https://unpkg.com/ssim.js@3.5.0/dist/ssim.web.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        canvas { border: 1px solid #ccc; max-width: 300px; }
+        #result { margin-top: 20px; padding: 15px; border-radius: 5px; }
+        .similar { background: #e8f5e9; color: #2e7d32; }
+        .different { background: #ffebee; color: #c62828; }
+    </style>
+</head>
+<body>
+    <h1>Logo Similarity Detector</h1>
+    <div class="container">
+        <div>
+            <input type="file" id="file1" accept="image/*">
+            <canvas id="preview1"></canvas>
+        </div>
+        <div>
+            <input type="file" id="file2" accept="image/*">
+            <canvas id="preview2"></canvas>
+        </div>
+    </div>
+    <button onclick="compareImages()">Compare Logos</button>
+    <div id="result"></div>
+
+    <script>
+        const processImage = async (file, canvasId) => {
+            const img = await createImageBitmap(file);
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas dimensions and prepare for processing
+            canvas.width = 300;
+            canvas.height = 300;
+
+            // Fill background with white and draw image
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, 300, 300);
+            ctx.drawImage(img, 0, 0, 300, 300);
+
+            // Convert to grayscale
+            const imageData = ctx.getImageData(0, 0, 300, 300);
+            const data = imageData.data;
+
+            for(let i = 0; i < data.length; i += 4) {
+                // Calculate grayscale value using luminance formula
+                const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                data[i] = data[i+1] = data[i+2] = gray;
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            return new Uint8Array(data.filter((_, idx) => idx % 4 === 0)); // Extract single channel
+        };
+
+        async function compareImages() {
+            const file1 = document.getElementById('file1').files[0];
+            const file2 = document.getElementById('file2').files[0];
+
+            if (!file1 || !file2) {
+                alert('Please select both images first!');
+                return;
+            }
+
+            try {
+                const [img1Data, img2Data] = await Promise.all([
+                    processImage(file1, 'preview1'),
+                    processImage(file2, 'preview2')
+                ]);
+
+                // Create SSIM-compatible objects
+                const img1 = { data: img1Data, width: 300, height: 300 };
+                const img2 = { data: img2Data, width: 300, height: 300 };
+
+                // Calculate SSIM
+                var { mssim } = ssim.ssim(img1, img2); const resultDiv = document.getElementById('result'); if(mssim<0.8) mssim/=4;
+                resultDiv.innerHTML = `
+                    <strong>Similarity Score:</strong> ${mssim.toFixed(3)}<br>
+                    ${mssim > 0.8 ? '✅ Highly similar logos!' : '❌ Different logos'}
+                `;
+
+                resultDiv.className = mssim > 0.8 ? 'similar' : 'different';
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error processing images. Please make sure they are valid image files.');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -62,8 +62,18 @@ async function fetchGemini(contents, domain) {
       {
         parts: [
           {
-            text: `you have to detect if a website is phishing website. Here are the website contents: ${contents} and the url of website is: ${domain}
-            return the output in strictly this json format where detection will output true if you think its a phishing website otherwise false, and also mention the name of the detectedSite: {"detection":true/false, "detectedSite": ""}`,
+            text: `You have to detect if a website is a phishing website.
+Here are the website contents: ${contents}
+The URL of the website is: ${domain}
+
+Return the output in strictly this JSON format:
+
+json
+Copy
+{"detection": true/false, "detectedSite": "", "legit": true/false}
+"detection" should be true if you think it is a phishing website; otherwise, false.
+"detectedSite" should contain the name of the website being impersonated (e.g., Google, SBI, Facebook).
+"legit" should be false if website is a popular or trusted service (such as retail.onlinesbi.sbi, Microsoft, Google, Amazon, Facebook, or Twitter, Paypal) or their subdomains; and true if and only if the site is a real login page and not the front page or home page and the first condition is false, its default value should be false`,
           },
         ],
       },
@@ -202,14 +212,6 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         }
       });
 
-      //Check High Priority Text
-      site.main.forEach((keyword) => {
-        if (pageContent.text.includes(keyword.toLowerCase())) {
-          matchCount += 30;
-          tempMatchedKeywords.push(keyword);
-        }
-      });
-
       // Check button text
       site.buttons.forEach((buttonText) => {
         if (pageContent.buttons.includes(buttonText.toLowerCase())) {
@@ -275,7 +277,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         console.error(`error: ${err}`);
       }
 
-      var res = { detection: false, detectedSite: "" };
+      var res = { detection: false, detectedSite: "", legit: false };
       try {
         const gemDetect = await fetchGemini(
           document.documentElement.innerHTML,
@@ -288,9 +290,11 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       } catch (err) {
         console.error(err);
       }
-      console.log(`gem detect: ${res["detection"]} ${res["detectedSite"]}`);
+      console.log(
+        `gem detect: ${res["detection"]} ${res["detectedSite"]}, legit: ${res["legit"]}`
+      );
 
-      if (maxMatches > 30 || res["detection"]) {
+      if ((maxMatches > 60 && res["legit"]) || res["detection"]) {
         await injectWarningPage();
       } else {
         // showWarningAlert(
@@ -299,9 +303,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         // );
       }
 
-      console.log(
-        `Potential phishing detected for: ${detectedSite.name} (Matches: ${maxMatches})`
-      );
+      console.log(`(Matches: ${maxMatches})`);
       console.log(`Matched Keywords: ${matchedKeywords.join(", ")}`);
     }
   }
