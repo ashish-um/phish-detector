@@ -296,15 +296,14 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
       if ((maxMatches > 60 && res["legit"]) || res["detection"]) {
         await injectWarningPage();
+        console.log(`(Matches: ${maxMatches})`);
+        console.log(`Matched Keywords: ${matchedKeywords.join(", ")}`);
       } else {
         // showWarningAlert(
         //   "⚠️ Warning: This website might be unsafe!",
         //   matchedKeywords.join(", ")
         // );
       }
-
-      console.log(`(Matches: ${maxMatches})`);
-      console.log(`Matched Keywords: ${matchedKeywords.join(", ")}`);
     }
   }
 });
